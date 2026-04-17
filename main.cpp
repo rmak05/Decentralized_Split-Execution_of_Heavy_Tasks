@@ -1,5 +1,7 @@
 #include <iostream>
 #include <vector>
+#include <format>
+#include <queue>
 #include <unistd.h>
 using namespace std;
 typedef vector<int> vi;
@@ -27,19 +29,15 @@ int distance(pi a, pi b){
     return abs(a.x-b.x) + abs(a.y-b.y);     // Manhattan distance
 }
 
-vector<Component> distribute_components(int R, vector<pi> &D, vi &service, vector<vi> &arrival){
-    vector<Component> C(D.size());
-    return C;
-}
-
-vector<vi> network(int R, vector<Component> &C){    // O(n*n)
-    int n = C.size();
+vector<vi> network(int R, vector<pi> &D){    // O(n*n)
+    int n = D.size();
     vector<vi> mesh(n);
 
     for(int i=0;i<n-1;i++){
         for(int j=i+1;j<n;j++){
-            if((C[j].id == (C[i].id+1)) && (distance(C[i].loc,C[j].loc)<=R)){
+            if(distance(D[i], D[j])<=R){
                 mesh[i].pb(j);
+                mesh[j].pb(i);
             }
         }
     }
@@ -47,18 +45,48 @@ vector<vi> network(int R, vector<Component> &C){    // O(n*n)
     return mesh;
 }
 
-vector<vector<vi>> find_nearest_C1(int A, int R, vector<Component> &C){
-    vector<vector<vi>> nearest_C1(A,vector<vi>(A));
+vector<Component> distribute_components(vector<vi> &mesh, vector<pi> &D, vi &service, vector<vi> &arrival){
+    int n = D.size(), k = service.size();
+    vector<Component> C(n);
+    for(int i=0;i<n;i++){
+        C[i].loc = D[i];    /* NOTE :- C[i].loc and D[i] Should always be the same. So that mesh created from initial D[] remains valid for finally generated components C[]. Removes recomputation. */
 
-    return nearest_C1;
+        C[i].id = i%k;      // Assign Components to Devices. Only this can be changed.
+
+        C[i].service_rate = service[C[i].id];
+    }
+    return C;
 }
 
-void start_simulation(int R, vector<pi> &D, vi &service, vector<vi> &arrival){
+vector<vector<vi>> find_C(int A, int R, vector<Component> &C){      // O(n*R*R)
+    vector<vector<vi>> first_hop(A,vector<vi>(A));
+
+    int n = C.size();
+    for(int u=0;u<n;u++){
+        auto [x,y] = C[u].loc;
+        for(int dx=-R;dx<=R;dx++){
+            int DY = R-abs(dx);
+            for(int dy=-DY;dy<=DY;dy++){
+                int i=x+dx, j=y+dy;
+                if(i<0 || j<0 || i>=A || j>=A) continue;
+                if(dx==0 && dy==0){
+                    error(format("Multiple Components/Devices {} and {} at same cell ({},{})",u,-first_hop[i][j][0]-1,i,j), 2, first_hop[i][j].size());
+                    first_hop[i][j].pb(-u-1);
+                }
+                else first_hop[i][j].pb(u);
+            }
+        }
+    }
+
+    return first_hop;
+}
+
+void start_simulation(int R, vector<pi> &D, vi &service, vector<vi> &arrival, int computation_period, int siganl_period){
     int A = arrival.size(), n = D.size(), k = service.size();
 
-    vector<Component> C = distribute_components(R, D, service, arrival);
-    vector<vi> mesh = network(R, C);                 // All reachable C_i --> C_(i+1) Components
-    vector<vector<vi>> nearest_C1 = find_nearest_C1(A, R, C);  // Nearest C1 Component from each Cell 
+    auto mesh = network(R, D);
+    auto C = distribute_components(mesh, D, service, arrival);
+    auto first_hop = find_C(A, R, C);       // All Reachable Components from each Cell.
 
     while(true){
 
@@ -67,8 +95,8 @@ void start_simulation(int R, vector<pi> &D, vi &service, vector<vi> &arrival){
     }
 }
 
-tuple<int, vector<pi>, vi, vector<vi>> Input(){
-    int A, R, n, k;
+tuple<int, vector<pi>, vi, vector<vi>, int, int> Input(){
+    int A, R, n, k, computation_period, signal_period;
     vector<pi> D(n);
     vi service(k);
     vector<vi> arrival(A,vi(A));
@@ -83,6 +111,11 @@ tuple<int, vector<pi>, vi, vector<vi>> Input(){
     cin>>k;
     error("|D| should be a multiple of |C|", 1, n%k);
 
+    cout<<"Enter Component computation_period: ";
+    cin>>computation_period;
+    cout<<"Enter Component signal_period: ";
+    cin>>signal_period;
+
     cout<<"Enter locations of devices (0-based) D[]: ";
     for(int i=0;i<n;i++) cin>>D[i].x>>D[i].y;
 
@@ -92,16 +125,16 @@ tuple<int, vector<pi>, vi, vector<vi>> Input(){
     cout<<"Enter the Task arrival Rate at each cell: "<<endl;
     for(int i=0;i<A;i++) for(int j=0;j<A;j++) cin>>arrival[i][j];
     
-    return {R, D, service, arrival};
+    return {R, D, service, arrival, computation_period, signal_period};
 }
 
 int main(){
     ios_base::sync_with_stdio(false);
     cin.tie(0);
 
-
-    auto [R, D, service, arrival] = Input();
-    start_simulation(R, D, service, arrival);
+    auto [R, D, service, arrival, cp, sp] = Input();
+    
+    start_simulation(R, D, service, arrival, cp, sp);
 
     return 0;
 }
