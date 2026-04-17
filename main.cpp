@@ -12,7 +12,7 @@ typedef pair<int,int> pi;
 #define x first
 #define y second
 
-// Use - `g++ -std=c++20 main.cpp` and `./a.exe --live` to compile
+// Use - `g++ -std=c++20 main.cpp && a.exe --live < sample_input.txt` to compile in cmd
 
 void error(const string &err, int exit_code, bool condition){
 	if(condition){
@@ -59,7 +59,7 @@ struct Component{
     int id;                     // Component number 
     pi loc;                     // Location of Component (part of D[])
     int service_rate;           // Given.
-    vector<Component> neighbors;// Neighboring Components to given component within R. 
+    vector<Component*> neighbors;// Neighboring Components to given component within R. 
     queue<Message> q;           // Queue of Tasks.
     set<int> seen_messages;     // Set of seen_messages (visited array to prevent infinite flooding)
 
@@ -86,8 +86,8 @@ struct Component{
         if(m.target!=id) return;
         q.pop();
 
-        Message processed_msg({m.x,m.y}, m.id+1);
-        if(m.id==k) m.id=-1;
+        Message processed_msg({m.x,m.y}, m.target+1);
+        if(processed_msg.target==k) processed_msg.target=-1;
         q.push(processed_msg);
     }
 
@@ -97,11 +97,11 @@ struct Component{
         if(m.target==id) return;
         q.pop();
 
-        if(m.target==-1 && distance(loc, {m.x,m.y})){
+        if(m.target==-1 && (distance(loc, {m.x,m.y})<=R)){
             // Task Finished and Reached Destination
         }
         else{
-            for(Component &c:neighbors) addEvent(m);
+            for(auto *c:neighbors) c->addEvent(m);
         }
     }
 };
@@ -122,7 +122,7 @@ vector<vi> network(int R, vector<pi> &D){    // O(n*n)
     return mesh;
 }
 
-vector<Component> distribute_components(vector<vi> &mesh, vector<pi> &D, vi &service, vector<vi> &arrival){
+vector<Component> distribute_components(vector<pi> &D, vi &service, vector<vi> &arrival){
     int n = D.size(), k = service.size();
     vector<Component> C(n);
     for(int i=0;i<n;i++){
@@ -131,7 +131,6 @@ vector<Component> distribute_components(vector<vi> &mesh, vector<pi> &D, vi &ser
         C[i].id = i%k;      // Assign Components to Devices. Only this can be changed.
 
         C[i].service_rate = service[C[i].id];
-        for(int v:mesh[i]) C[i].neighbors.pb(C[v]);
     }
     return C;
 }
@@ -162,7 +161,7 @@ pi EventArrival(vector<vi> &arrival){
 int Print(vector<Component> &C, State state){
     int n = C.size();
     cout<<"\nCurrent State - "<<((state==SIGNAL)? "SIGNAL":"COMPUTATION")<<"\n";
-    for(int i=0;i<n;i++) printf("   Device %d:  (%d,%d)  Component %d    -   Queue size = %d\n",C[i].loc.x,C[i].loc.y,i,C[i].id,(int)C[i].q.size());
+    for(int i=0;i<n;i++) printf("   Device %d:  (%d,%d)  Component %d    -   Queue length = %d\n",i,C[i].loc.x,C[i].loc.y,C[i].id,(int)C[i].q.size());
     int lines = n+2;
     fflush(stdout);
     return lines;
@@ -180,7 +179,8 @@ tuple<float, float, float, float> start_simulation(int R, vector<pi> &D, vi &ser
 
     auto mesh = network(R, D);
     Component::staticVar(k, R);
-    auto C = distribute_components(mesh, D, service, arrival);
+    auto C = distribute_components(D, service, arrival);
+    for(int u=0;u<n;u++) for(int v:mesh[u]) C[u].neighbors.pb(&C[v]);
     auto first_hop = find_C(A, R, C);       // All Reachable Components from each Cell.
 
     const int HOPS_PER_SIGNAL_PERIOD = 2;
