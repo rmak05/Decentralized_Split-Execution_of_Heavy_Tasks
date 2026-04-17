@@ -147,20 +147,32 @@ vector<vector<vi>> find_C(int A, int R, vector<Component> &C){      // O(n*R*R)
             for(int dy=-DY;dy<=DY;dy++){
                 int i=x+dx, j=y+dy;
                 if(i<0 || j<0 || i>=A || j>=A) continue;
-                if(dx==0 && dy==0){
-                    error(format("Multiple Components/Devices {} and {} at same cell ({},{})",u,-first_hop[i][j][0]-1,i,j), 2, first_hop[i][j].size());
-                    first_hop[i][j].pb(-u-1);
-                }
-                else first_hop[i][j].pb(u);
+                first_hop[i][j].pb(u);
             }
         }
     }
-
+    
     return first_hop;
 }
 
 pi EventArrival(vector<vi> &arrival){
     return {-1, -1};
+}
+
+int Print(vector<Component> &C, State state){
+    int n = C.size();
+    cout<<"\nCurrent State - "<<((state==SIGNAL)? "SIGNAL":"COMPUTATION")<<"\n";
+    for(int i=0;i<n;i++) printf("   Device %d:  (%d,%d)  Component %d    -   Queue size = %d\n",C[i].loc.x,C[i].loc.y,i,C[i].id,(int)C[i].q.size());
+    int lines = n+2;
+    fflush(stdout);
+    return lines;
+}
+
+void Refresh(int lines){
+    // Clear and print on same lines
+    printf("\033[%dA",lines);
+    for(int i=0;i<lines;i++) printf("\033[2K\n");
+    printf("\033[%dA",lines);
 }
 
 tuple<float, float, float, float> start_simulation(int R, vector<pi> &D, vi &service, vector<vi> &arrival, int computation_period, int signal_period){
@@ -177,8 +189,10 @@ tuple<float, float, float, float> start_simulation(int R, vector<pi> &D, vi &ser
     long long totalQueueLength = 0, totalFrames = 0;
     long long TaskCompletionTime = 0, totalTasks = 0;
     long long totalQueueTime = 0, totalCommunicationTime = 0;
-
+    
     while(true){
+        int lines = Print(C, state);
+
         if(state==COMPUTATION){
             if(Time>=computation_period){
                 for(Component &c:C) c.processEvent();
@@ -204,9 +218,11 @@ tuple<float, float, float, float> start_simulation(int R, vector<pi> &D, vi &ser
         }
 
         for(Component &c:C) totalQueueLength += c.q.size();
-        Time += FRAME_DELAY;
+        Time += FRAME_DELAY/1000;
         totalFrames++;
         if(LIVE) usleep(FRAME_DELAY);
+
+        Refresh(lines);
     }
 
     float L = (float)totalQueueLength/totalFrames;
@@ -221,32 +237,32 @@ tuple<float, float, float, float> start_simulation(int R, vector<pi> &D, vi &ser
 tuple<int, vector<pi>, vi, vector<vi>, int, int> Input(){
     int A, R, n, k, computation_period, signal_period;
 
-    cout<<"Enter Square length A: ";
+    cout<<"\nEnter Square length A: ";
     cin>>A;
-    cout<<"Enter communication radius R: ";
+    cout<<"\nEnter communication radius R: ";
     cin>>R;
-    cout<<"Enter the number of devices D: ";
+    cout<<"\nEnter the number of devices D:\n";
     cin>>n;
-    cout<<"Enter the number of components C: ";
+    cout<<"\nEnter the number of components C: ";
     cin>>k;
     error("|D| should be a multiple of |C|", 1, n%k);
 
-    cout<<"Enter Component computation_period: ";
+    cout<<"\nEnter Component computation_period: ";
     cin>>computation_period;
-    cout<<"Enter Component signal_period: ";
+    cout<<"\nEnter Component signal_period: ";
     cin>>signal_period;
-    
+
     vector<pi> D(n);
     vi service(k);
     vector<vi> arrival(A,vi(A));
 
-    cout<<"Enter locations of devices (0-based) D[]: ";
+    cout<<"\nEnter locations of devices (0-based) D[]: ";
     for(int i=0;i<n;i++) cin>>D[i].x>>D[i].y;
 
-    cout<<"Enter the service rate of each component C_i: ";
+    cout<<"\nEnter the service rate of each component C_i: ";
     for(int i=0;i<k;i++) cin>>service[i];
 
-    cout<<"Enter the Task arrival Rate at each cell: "<<endl;
+    cout<<"\nEnter the Task arrival Rate at each cell:"<<endl;
     for(int i=0;i<A;i++) for(int j=0;j<A;j++) cin>>arrival[i][j];
     
     return {R, D, service, arrival, computation_period, signal_period};
@@ -254,7 +270,7 @@ tuple<int, vector<pi>, vi, vector<vi>, int, int> Input(){
 
 int main(int argc, char* argv[]){
     if(argc>1){
-        if(strcmp(argv[1],"--live")) LIVE = true;
+        if(strcmp(argv[1],"--live")==0) LIVE = true;
     }
 
     auto [R, D, service, arrival, cp, sp] = Input();
