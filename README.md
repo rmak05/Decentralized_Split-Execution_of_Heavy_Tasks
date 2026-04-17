@@ -1,1 +1,1 @@
-# Decentralized_Split-Execution_of_Heavy_Tasks
+# Decentralized Split Execution of Heavy Tasks
