@@ -281,8 +281,8 @@ pair<float, float> start_simulation(int R, vector<pi> &D, vi &Cmap, vi &service,
                     for(auto [x, y] : event_coords){
                         for(int u : first_hop[x][y]){
                             C[u].addEvent({x, y});
-                            totalTasks++;
                         }
+                        totalTasks++;
                     }
                 }
                 else{
