@@ -202,6 +202,7 @@ vector<pair<int, int>> EventArrival(vector<vector<TaskArrivalDistribution>>& arr
 }
 
 int Print(vector<Component> &C, State state){
+    if(!LIVE) return 0;
     int n = C.size();
     cout << "\nCurrent State - " << ((state == SIGNAL) ? "SIGNAL" : "COMPUTATION") << "\n";
     for(int i = 0; i < n; i++){
@@ -288,7 +289,7 @@ pair<float, float> start_simulation(int R, vector<pi> &D, vi &Cmap, vi &service,
                 else{
                     if(!PRINTED){
                         Refresh(lines);
-                        cout << "\nNew Event Generation stopped." << endl;
+                        if(LIVE) cout << "\nNew Event Generation stopped." << endl;
                         lines = 0;
                         PRINTED = true;
                     }
@@ -306,8 +307,8 @@ pair<float, float> start_simulation(int R, vector<pi> &D, vi &Cmap, vi &service,
         Refresh(lines);
     }
 
-    float L = (float)totalQueueLength / totalFrames;
-    float T = L * FRAME_DELAY / (totalFrames * totalTasks);
+    float L = (float)totalQueueLength / (n*totalFrames);
+    float T = (float)totalFrames * FRAME_DELAY / (1e3 * totalTasks);
 
     return {T, L};
 }
@@ -380,8 +381,8 @@ int main(int argc, char* argv[]){
         vi Cmap = generateC(D.size(), service.size());
         auto [T, L] = start_simulation(R, D, Cmap, service, arrival, cp, sp, st);
 
-        cout << "\nAverage Time per packet T  = " << T << " seconds" << endl;
-        cout << "Average Queue Length    L  = " << L << endl;
+        cout << "\nAverage Time per task T  = " << T << " ms" << endl;
+        cout << "Average Queue Length  L  = " << L << endl;
 
         for(int i=0;i<width;i++) cout<<"="; cout<<endl;
 
