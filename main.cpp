@@ -25,7 +25,7 @@ void error(const string &err, int exit_code, bool condition){
     }
 }
 
-const int FRAME_DELAY = 500000;     // us
+const int FRAME_DELAY = 50 * 1e3;     // us
 bool LIVE = false;
 
 enum State{
@@ -33,10 +33,10 @@ enum State{
     SIGNAL
 };
 
-int rand_num(){
+int rand_num(int l=1, int r=1e9){
     static random_device rd;
     static mt19937 gen(rd());
-    static uniform_int_distribution<long long> dis(1, 1e9);
+    static uniform_int_distribution<long long> dis(l, r);
     return dis(gen);
 }
 
@@ -151,13 +151,14 @@ vector<vi> network(int R, vector<pi> &D){    // O(n*n)
     return mesh;
 }
 
-vector<Component> distribute_components(vector<pi> &D, vi &service, vector<vi> &arrival){
+vector<Component> distribute_components(vector<pi> &D, vi &Cmap, vi &service){
     int n = D.size(), k = service.size();
     vector<Component> C(n);
     for(int i = 0; i < n; i++){
         C[i].loc = D[i];    /* NOTE :- C[i].loc and D[i] Should always be the same. So that mesh created from initial D[] remains valid for finally generated components C[]. Removes recomputation. */
 
-        C[i].id = i % k;      // Assign Components to Devices. Only this can be changed.
+        C[i].id = Cmap[i];
+        // C[i].id = i % k;      // Assign Components to Devices. Only this can be changed.
 
         C[i].service_rate = service[C[i].id];
     }
@@ -182,10 +183,6 @@ vector<vector<vi>> find_C(int A, int R, vector<Component> &C){      // O(n*R*R)
 
     return first_hop;
 }
-
-// pi EventArrival(vector<vi> &arrival){
-//     return {-1, -1};
-// }
 
 vector<pair<int, int>> EventArrival(vector<vector<TaskArrivalDistribution>>& arrival_dist){
     int rows = arrival_dist.size(), cols = arrival_dist[0].size();
@@ -216,13 +213,14 @@ int Print(vector<Component> &C, State state){
 }
 
 void Refresh(int lines){
+    if(lines==0) return;
     // Clear and print on same lines
     printf("\033[%dA", lines);
     for(int i = 0; i < lines; i++) printf("\033[2K\n");
     printf("\033[%dA", lines);
 }
 
-tuple<float, float, float, float> start_simulation(int R, vector<pi> &D, vi &service, vector<vi> &arrival, int computation_period, int signal_period){
+pair<float, float> start_simulation(int R, vector<pi> &D, vi &Cmap, vi &service, vector<vi> &arrival, int computation_period, int signal_period, int simulation_time){
     int A = arrival.size(), n = D.size(), k = service.size();
     
     int grid_rows = arrival.size();
@@ -236,7 +234,7 @@ tuple<float, float, float, float> start_simulation(int R, vector<pi> &D, vi &ser
 
     auto mesh = network(R, D);
     Component::staticVar(k, R);
-    auto C = distribute_components(D, service, arrival);
+    auto C = distribute_components(D, Cmap, service);
     for(int u = 0; u < n; u++){
         for(int v : mesh[u]){
             C[u].neighbors.pb(&C[v]);
@@ -250,44 +248,57 @@ tuple<float, float, float, float> start_simulation(int R, vector<pi> &D, vi &ser
     long long totalQueueLength = 0, totalFrames = 0;
     long long TaskCompletionTime = 0, totalTasks = 0;
     long long totalQueueTime = 0, totalCommunicationTime = 0;
+    bool PRINTED = false;
     
     while(true){
         int lines = Print(C, state);
 
+        int pending_tasks = 0;
+        for(Component &c : C) pending_tasks += c.q.size();
+
         if(state == COMPUTATION){
+            for(Component &c : C){
+                if((Time % (1000/c.service_rate)) == 0) c.processEvent();
+            }
+
             if(Time >= computation_period){
-                for(Component &c : C) c.processEvent();
                 Time = 0;
                 state = SIGNAL;
             }
         }
         else if(state == SIGNAL){
-            if((Time % (signal_period / HOPS_PER_SIGNAL_PERIOD)) == 0){
-                for(Component &c : C) c.forward();
+            for(Component &c : C){
+                if((Time % (1000/c.service_rate)) == 0) c.forward();
             }
 
             if(Time >= signal_period){
                 Time = 0;
                 state = COMPUTATION;
 
-                auto event_coords = EventArrival(arrival_dist);
-                
-                for(auto [x, y] : event_coords){
-                    for(int u : first_hop[x][y]){
-                        C[u].addEvent({x, y});
+                if(totalFrames*FRAME_DELAY <= simulation_time*1e6){
+                    auto event_coords = EventArrival(arrival_dist);
+                    
+                    for(auto [x, y] : event_coords){
+                        for(int u : first_hop[x][y]){
+                            C[u].addEvent({x, y});
+                            totalTasks++;
+                        }
                     }
-                    totalTasks++;
+                }
+                else{
+                    if(!PRINTED){
+                        Refresh(lines);
+                        cout << "\nNew Event Generation stopped." << endl;
+                        lines = 0;
+                        PRINTED = true;
+                    }
+
+                    if(pending_tasks == 0) break;
                 }
             }
         }
 
-        // auto [x,y] = EventArrival(arrival);
-        // if(x!=-1){      // Process new incoming event
-        //     for(int u:first_hop[x][y]) C[u].addEvent({x,y});
-        //     totalTasks++;
-        // }
-
-        for(Component &c : C) totalQueueLength += c.q.size();
+        totalQueueLength += pending_tasks;
         Time += FRAME_DELAY / 1000;
         totalFrames++;
         if(LIVE) usleep(FRAME_DELAY);
@@ -298,11 +309,11 @@ tuple<float, float, float, float> start_simulation(int R, vector<pi> &D, vi &ser
     float L = (float)totalQueueLength / totalFrames;
     float T = L * FRAME_DELAY / (totalFrames * totalTasks);
 
-    return {T, L, 1, 0};
+    return {T, L};
 }
 
-tuple<int, vector<pi>, vi, vector<vi>, int, int> Input(){
-    int A, R, n, k, computation_period, signal_period;
+tuple<int, vector<pi>, vi, vector<vi>, int, int, int> Input(){
+    int A, R, n, k, computation_period, signal_period, simulation_time;
 
     cout << "\nEnter Square length A: ";
     cin >> A;
@@ -314,10 +325,12 @@ tuple<int, vector<pi>, vi, vector<vi>, int, int> Input(){
     cin >> k;
     error("|D| should be a multiple of |C|", 1, n % k);
 
-    cout << "\nEnter Component computation_period: ";
+    cout << "\nEnter Component computation_period (in ms): ";
     cin >> computation_period;
-    cout << "\nEnter Component signal_period: ";
+    cout << "\nEnter Component signal_period (in ms): ";
     cin >> signal_period;
+    cout << "\nEnter Time to run a single simulation (in seconds): ";
+    cin >> simulation_time;
 
     vector<pi> D(n);
     vi service(k);
@@ -326,7 +339,7 @@ tuple<int, vector<pi>, vi, vector<vi>, int, int> Input(){
     cout << "\nEnter locations of devices (0-based) D[]: ";
     for(int i = 0; i < n; i++) cin >> D[i].x >> D[i].y;
 
-    cout << "\nEnter the service rate of each component C_i: ";
+    cout << "\nEnter the service rate of each component C_i (tasks per second): ";
     for(int i = 0; i < k; i++) cin >> service[i];
 
     cout << "\nEnter the Task arrival Rate at each cell:" << endl;
@@ -336,28 +349,44 @@ tuple<int, vector<pi>, vi, vector<vi>, int, int> Input(){
         }
     }
 
-    return {R, D, service, arrival, computation_period, signal_period};
+    return {R, D, service, arrival, computation_period, signal_period, simulation_time};
+}
+
+vi generateC(int n, int k){
+    vi Cmap(n);
+    for(int i=0;i<n;i++) Cmap[i] = i%k;
+    for(int i=0;i<n-1;i++){
+        int j = rand_num(i,n-1);
+        swap(Cmap[i], Cmap[j]);
+    }
+    return Cmap;
 }
 
 int main(int argc, char* argv[]){
+    srand(time(NULL));
+
     if(argc > 1){
         if(strcmp(argv[1], "--live") == 0) LIVE = true;
     }
 
-    auto [R, D, service, arrival, cp, sp] = Input();
-    Refresh(10);
+    auto [R, D, service, arrival, cp, sp, st] = Input();
+    Refresh(11);
     
-    auto [T, L, fraction_queueing_delay, fraction_communication_delay] = start_simulation(R, D, service, arrival, cp, sp);
+    const int samples = 3, width = 60;
+    for(int i=1;i<=samples;i++){
+        for(int i=0;i<width;i++) cout<<"-";
+        cout<<"\nSample : "<<i<<endl;
+
+        vi Cmap = generateC(D.size(), service.size());
+        auto [T, L] = start_simulation(R, D, Cmap, service, arrival, cp, sp, st);
+
+        cout << "\nAverage Time per packet T  = " << T << " seconds" << endl;
+        cout << "Average Queue Length    L  = " << L << endl;
+
+        for(int i=0;i<width;i++) cout<<"="; cout<<endl;
+
+        sleep(1);
+    }
 
     return 0;
 }
-
-/*
-TODO:
-
-- Use Service Rate (integer). Time taken by the device to compute a task.
-
-- Limit total number of iterations (take input). Print stats at the end.
-
-- Random samling for device locations (C_i).
-*/
