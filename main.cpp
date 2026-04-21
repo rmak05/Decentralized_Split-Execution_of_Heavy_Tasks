@@ -297,9 +297,6 @@ tuple<float, float, float, float> start_simulation(int R, vector<pi> &D, vi &ser
 
     float L = (float)totalQueueLength / totalFrames;
     float T = L * FRAME_DELAY / (totalFrames * totalTasks);
-    
-    /* NOT DONE. Fraction of total delay caused due to queueing at components and communication between components. */
-    /* Service Rate - NOT USED anywhere in the code. */
 
     return {T, L, 1, 0};
 }
@@ -348,8 +345,19 @@ int main(int argc, char* argv[]){
     }
 
     auto [R, D, service, arrival, cp, sp] = Input();
+    Refresh(10);
     
     auto [T, L, fraction_queueing_delay, fraction_communication_delay] = start_simulation(R, D, service, arrival, cp, sp);
 
     return 0;
 }
+
+/*
+TODO:
+
+- Use Service Rate (integer). Time taken by the device to compute a task.
+
+- Limit total number of iterations (take input). Print stats at the end.
+
+- Random samling for device locations (C_i).
+*/
