@@ -3,7 +3,6 @@
 #include <set>
 #include <queue>
 #include <random>
-#include <format>
 #include <chrono>
 #include <cassert>
 #include <unistd.h>
@@ -17,7 +16,7 @@ typedef pair<int, int> pi;
 
 mt19937 rand_gen((unsigned)chrono::steady_clock::now().time_since_epoch().count());
 
-// Use - `g++ -std=c++20 main.cpp && a.exe --live < sample_input.txt` to compile in cmd
+// Use - `g++ main.cpp && a.exe --live < sample_input.txt` to compile in cmd
 
 void error(const string &err, int exit_code, bool condition){
 	if(condition){
@@ -26,7 +25,7 @@ void error(const string &err, int exit_code, bool condition){
     }
 }
 
-const int FRAME_DELAY = 5000;     // us
+const int FRAME_DELAY = 500000;     // us
 bool LIVE = false;
 
 enum State{
