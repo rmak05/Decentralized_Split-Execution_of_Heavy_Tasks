@@ -34,8 +34,6 @@ enum State{
 };
 
 int rand_num(int l = 1, int r = 1e9){
-    // static random_device rd;
-    // static mt19937 gen(rd());
     static uniform_int_distribution<long long> dis(l, r);
     return dis(rand_gen);
 }
