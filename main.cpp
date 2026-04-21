@@ -33,11 +33,11 @@ enum State{
     SIGNAL
 };
 
-int rand_num(int l=1, int r=1e9){
-    static random_device rd;
-    static mt19937 gen(rd());
+int rand_num(int l = 1, int r = 1e9){
+    // static random_device rd;
+    // static mt19937 gen(rd());
     static uniform_int_distribution<long long> dis(l, r);
-    return dis(gen);
+    return dis(rand_gen);
 }
 
 struct Message{
@@ -308,7 +308,7 @@ pair<float, float> start_simulation(int R, vector<pi> &D, vi &Cmap, vi &service,
     }
 
     float L = (float)totalQueueLength / (n*totalFrames);
-    float T = (float)totalFrames * FRAME_DELAY / (1e3 * totalTasks);
+    float T = ((float)totalFrames * FRAME_DELAY) / (1e3 * totalTasks);
 
     return {T, L};
 }
