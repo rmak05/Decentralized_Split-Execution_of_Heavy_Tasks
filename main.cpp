@@ -1,16 +1,21 @@
 #include <iostream>
+#include <vector>
+#include <set>
+#include <queue>
 #include <random>
 #include <format>
-#include <vector>
-#include <queue>
-#include <set>
+#include <chrono>
+#include <cassert>
 #include <unistd.h>
 using namespace std;
+
 typedef vector<int> vi;
-typedef pair<int,int> pi;
+typedef pair<int, int> pi;
 #define pb push_back
 #define x first
 #define y second
+
+mt19937 rand_gen((unsigned)chrono::steady_clock::now().time_since_epoch().count());
 
 // Use - `g++ -std=c++20 main.cpp && a.exe --live < sample_input.txt` to compile in cmd
 
@@ -106,6 +111,31 @@ struct Component{
     }
 };
 
+struct TaskArrivalDistribution{
+private:
+    poisson_distribution<int> dist;
+
+public:
+    TaskArrivalDistribution() :
+    dist(0){}
+
+    TaskArrivalDistribution(const vector<int>& _params){
+        assert(_params.size() >= 1);
+
+        dist = poisson_distribution<int>(_params[0]);
+    }
+
+    void set_params(const vector<int>& _params){
+        assert(_params.size() >= 1);
+
+        dist = poisson_distribution<int>(_params[0]);
+    }
+
+    int generate_value(){
+        return dist(rand_gen);
+    }
+};
+
 vector<vi> network(int R, vector<pi> &D){    // O(n*n)
     int n = D.size();
     vector<vi> mesh(n);
@@ -154,8 +184,25 @@ vector<vector<vi>> find_C(int A, int R, vector<Component> &C){      // O(n*R*R)
     return first_hop;
 }
 
-pi EventArrival(vector<vi> &arrival){
-    return {-1, -1};
+// pi EventArrival(vector<vi> &arrival){
+//     return {-1, -1};
+// }
+
+vector<pair<int, int>> EventArrival(vector<vector<TaskArrivalDistribution>>& arrival_dist){
+    int rows = arrival_dist.size(), cols = arrival_dist[0].size();
+    vector<pair<int, int>> events;
+    
+    for(int i = 0; i < rows; i++){
+        for(int j = 0; j < cols; j++){
+            int num_events = arrival_dist[i][j].generate_value();
+
+            for(int k = 0; k < num_events; k++){
+                events.emplace_back(i, j);
+            }
+        }
+    }
+
+    return events;
 }
 
 int Print(vector<Component> &C, State state){
@@ -176,6 +223,15 @@ void Refresh(int lines){
 
 tuple<float, float, float, float> start_simulation(int R, vector<pi> &D, vi &service, vector<vi> &arrival, int computation_period, int signal_period){
     int A = arrival.size(), n = D.size(), k = service.size();
+    
+    int grid_rows = arrival.size();
+    int grid_cols = arrival[0].size();
+    vector<vector<TaskArrivalDistribution>> arrival_dist(grid_rows, vector<TaskArrivalDistribution>(grid_cols));
+    for(int i = 0; i < grid_rows; i++){
+        for(int j = 0; j < grid_cols; j++){
+            arrival_dist[i][j].set_params({arrival[i][j]});
+        }
+    }
 
     auto mesh = network(R, D);
     Component::staticVar(k, R);
@@ -208,14 +264,23 @@ tuple<float, float, float, float> start_simulation(int R, vector<pi> &D, vi &ser
             if(Time>=signal_period){
                 Time = 0;
                 state = COMPUTATION;
+
+                auto event_coords = EventArrival(arrival_dist);
+                
+                for(auto [x, y] : event_coords){
+                    for(int u : first_hop[x][y]){
+                        C[u].addEvent({x, y});
+                    }
+                    totalTasks++;
+                }
             }
         }
 
-        auto [x,y] = EventArrival(arrival);
-        if(x!=-1){      // Process new incoming event
-            for(int u:first_hop[x][y]) C[u].addEvent({x,y});
-            totalTasks++;
-        }
+        // auto [x,y] = EventArrival(arrival);
+        // if(x!=-1){      // Process new incoming event
+        //     for(int u:first_hop[x][y]) C[u].addEvent({x,y});
+        //     totalTasks++;
+        // }
 
         for(Component &c:C) totalQueueLength += c.q.size();
         Time += FRAME_DELAY/1000;
