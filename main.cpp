@@ -307,7 +307,7 @@ pair<float, float> start_simulation(int R, vector<pi> &D, vi &Cmap, vi &service,
     }
 
     float L = (float)totalQueueLength / totalFrames;
-    float T = L * FRAME_DELAY / (totalFrames * totalTasks);
+    float T = (L * FRAME_DELAY) / (totalFrames * totalTasks);
 
     return {T, L};
 }
