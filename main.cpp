@@ -133,7 +133,7 @@ public:
     }
 };
 
-vector<vi> network(int R, vector<pi> &D){    // O(n*n)
+vector<vi> network(int R, vector<pi> &D){    // O(n * n)
     int n = D.size();
     vector<vi> mesh(n);
 
@@ -163,7 +163,7 @@ vector<Component> distribute_components(vector<pi> &D, vi &Cmap, vi &service){
     return C;
 }
 
-vector<vector<vi>> find_C(int A, int R, vector<Component> &C){      // O(n*R*R)
+vector<vector<vi>> find_C(int A, int R, vector<Component> &C){      // O(n * R * R)
     vector<vector<vi>> first_hop(A, vector<vi>(A));
 
     int n = C.size();
@@ -212,7 +212,7 @@ int Print(vector<Component> &C, State state){
 }
 
 void Refresh(int lines){
-    if(lines==0) return;
+    if(lines == 0) return;
     // Clear and print on same lines
     printf("\033[%dA", lines);
     for(int i = 0; i < lines; i++) printf("\033[2K\n");
@@ -257,7 +257,7 @@ pair<float, float> start_simulation(int R, vector<pi> &D, vi &Cmap, vi &service,
 
         if(state == COMPUTATION){
             for(Component &c : C){
-                if((Time % (1000/c.service_rate)) == 0) c.processEvent();
+                if((Time % (1000 / c.service_rate)) == 0) c.processEvent();
             }
 
             if(Time >= computation_period){
@@ -267,7 +267,7 @@ pair<float, float> start_simulation(int R, vector<pi> &D, vi &Cmap, vi &service,
         }
         else if(state == SIGNAL){
             for(Component &c : C){
-                if((Time % (1000/c.service_rate)) == 0) c.forward();
+                if((Time % (1000 / c.service_rate)) == 0) c.forward();
             }
 
             if(Time >= signal_period){
@@ -353,9 +353,11 @@ tuple<int, vector<pi>, vi, vector<vi>, int, int, int> Input(){
 
 vi generateC(int n, int k){
     vi Cmap(n);
-    for(int i=0;i<n;i++) Cmap[i] = i%k;
-    for(int i=0;i<n-1;i++){
-        int j = rand_num(i,n-1);
+    for(int i = 0; i < n; i++){
+        Cmap[i] = i % k;
+    }
+    for(int i = 0; i < n - 1; i++){
+        int j = rand_num(i, n - 1);
         swap(Cmap[i], Cmap[j]);
     }
     return Cmap;
@@ -372,9 +374,9 @@ int main(int argc, char* argv[]){
     Refresh(11);
     
     const int samples = 3, width = 60;
-    for(int i=1;i<=samples;i++){
-        for(int i=0;i<width;i++) cout<<"-";
-        cout<<"\nSample : "<<i<<endl;
+    for(int i = 1; i <= samples; i++){
+        for(int i = 0; i < width; i++) cout << "-";
+        cout << "\nSample : " << i << endl;
 
         vi Cmap = generateC(D.size(), service.size());
         auto [T, L] = start_simulation(R, D, Cmap, service, arrival, cp, sp, st);
@@ -382,7 +384,8 @@ int main(int argc, char* argv[]){
         cout << "\nAverage Time per task T  = " << T << " ms" << endl;
         cout << "Average Queue Length  L  = " << L << endl;
 
-        for(int i=0;i<width;i++) cout<<"="; cout<<endl;
+        for(int i = 0; i < width; i++) cout << "=";
+        cout << endl;
 
         sleep(1);
     }
