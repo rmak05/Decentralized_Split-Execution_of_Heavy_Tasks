@@ -204,7 +204,7 @@ int Print(vector<Component> &C, State state){
     int n = C.size();
     cout << "\nCurrent State - " << ((state == SIGNAL) ? "SIGNAL" : "COMPUTATION") << "\n";
     for(int i = 0; i < n; i++){
-        printf("   Device %d:  (%d,%d)  Component %d    -   Queue length = %d\n", i, C[i].loc.x, C[i].loc.y, C[i].id, (int)C[i].q.size());
+        printf("   Device %d:  (%d,%d)  Component %d    -   Queue length = %d\n", i + 1, C[i].loc.x, C[i].loc.y, C[i].id + 1, (int)C[i].q.size());
     }
     int lines = n + 2;
     fflush(stdout);
@@ -314,21 +314,21 @@ pair<float, float> start_simulation(int R, vector<pi> &D, vi &Cmap, vi &service,
 tuple<int, vector<pi>, vi, vector<vi>, int, int, int> Input(){
     int A, R, n, k, computation_period, signal_period, simulation_time;
 
-    cout << "\nEnter Square length A: ";
+    cout << "\nEnter square length N: ";
     cin >> A;
     cout << "\nEnter communication radius R: ";
     cin >> R;
-    cout << "\nEnter the number of devices D:\n";
+    cout << "\nEnter the number of devices M: ";
     cin >> n;
-    cout << "\nEnter the number of components C: ";
+    cout << "\nEnter the number of components K: ";
     cin >> k;
-    error("|D| should be a multiple of |C|", 1, n % k);
+    error("M should be a multiple of K", 1, n % k);
 
-    cout << "\nEnter Component computation_period (in ms): ";
+    cout << "\nEnter component computation period (in ms): ";
     cin >> computation_period;
-    cout << "\nEnter Component signal_period (in ms): ";
+    cout << "\nEnter component signal period (in ms): ";
     cin >> signal_period;
-    cout << "\nEnter Time to run a single simulation (in seconds): ";
+    cout << "\nEnter time to run a single simulation (in seconds): ";
     cin >> simulation_time;
 
     vector<pi> D(n);
@@ -341,7 +341,7 @@ tuple<int, vector<pi>, vi, vector<vi>, int, int, int> Input(){
     cout << "\nEnter the service rate of each component C_i (tasks per second): ";
     for(int i = 0; i < k; i++) cin >> service[i];
 
-    cout << "\nEnter the Task arrival Rate at each cell:" << endl;
+    cout << "\nEnter the Task arrival Rate at each grid cell:" << endl;
     for(int i = 0; i < A; i++){
         for(int j = 0; j < A; j++){
             cin >> arrival[i][j];
