@@ -16,8 +16,6 @@ typedef pair<int, int> pi;
 
 mt19937 rand_gen((unsigned)chrono::steady_clock::now().time_since_epoch().count());
 
-// Use - `g++ main.cpp && a.exe --live < sample_input.txt` to compile in cmd
-
 void error(const string &err, int exit_code, bool condition){
 	if(condition){
         cout << "\n\nERROR: " << err << endl;
@@ -370,6 +368,8 @@ int main(int argc, char* argv[]){
         if(strcmp(argv[1], "--live") == 0) LIVE = true;
     }
 
+    freopen("input.txt", "r", stdin);
+
     auto [R, D, service, arrival, cp, sp, st] = Input();
     Refresh(11);
     
@@ -392,3 +392,9 @@ int main(int argc, char* argv[]){
 
     return 0;
 }
+
+/*
+g++ main.cpp -o program.exe
+./program.exe
+./program.exe --live
+*/
