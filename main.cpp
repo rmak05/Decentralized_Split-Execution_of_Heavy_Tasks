@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include <vector>
 #include <set>
 #include <queue>
@@ -219,6 +220,8 @@ void Refresh(int lines){
 
 pair<float, float> start_simulation(int R, vector<pi> &D, vi &Cmap, vi &service, vector<vi> &arrival, int computation_period, int signal_period, int simulation_time){
     int A = arrival.size(), n = D.size(), k = service.size();
+
+    ofstream qlength_stats("qlength.txt");
     
     int grid_rows = arrival.size();
     int grid_cols = arrival[0].size();
@@ -254,6 +257,8 @@ pair<float, float> start_simulation(int R, vector<pi> &D, vi &Cmap, vi &service,
         for(Component &c : C) pending_tasks += c.q.size();
 
         if(state == COMPUTATION){
+            qlength_stats << ((float)totalQueueLength / (n * totalFrames)) << endl;
+
             for(Component &c : C){
                 if((Time % (1000 / c.service_rate)) == 0) c.processEvent();
             }
@@ -302,10 +307,12 @@ pair<float, float> start_simulation(int R, vector<pi> &D, vi &Cmap, vi &service,
 
         Refresh(lines);
     }
+    
+    qlength_stats.close();
 
-    float L = (float)totalQueueLength / (n*totalFrames);
+    float L = (float)totalQueueLength / (n * totalFrames);
     float T = ((float)totalFrames * FRAME_DELAY) / (1e3 * totalTasks);
-
+    
     return {T, L};
 }
 
@@ -381,6 +388,7 @@ int main(int argc, char* argv[]){
         cout << "\nSample : " << i << endl;
 
         vi Cmap = generateC(D.size(), service.size());
+        // Cmap = {0, 1, 2, 0, 1, 2};
         auto [T, L] = start_simulation(R, D, Cmap, service, arrival, cp, sp, st);
 
         cout << "\nAverage Time per task T  = " << T << " ms" << endl;
