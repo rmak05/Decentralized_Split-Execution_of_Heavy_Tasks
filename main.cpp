@@ -309,9 +309,11 @@ pair<float, float> start_simulation(int R, vector<pi> &D, vi &Cmap, vi &service,
     return {T, L};
 }
 
-tuple<int, vector<pi>, vi, vector<vi>, int, int, int> Input(){
-    int A, R, n, k, computation_period, signal_period, simulation_time;
+tuple<const int, int, vector<pi>, vi, vector<vi>, int, int, int> Input(){
+    int samples, A, R, n, k, computation_period, signal_period, simulation_time;
 
+    cout << "\nEnter the number of testcases: ";
+    cin >> samples;
     cout << "\nEnter square length N: ";
     cin >> A;
     cout << "\nEnter communication radius R: ";
@@ -346,7 +348,7 @@ tuple<int, vector<pi>, vi, vector<vi>, int, int, int> Input(){
         }
     }
 
-    return {R, D, service, arrival, computation_period, signal_period, simulation_time};
+    return {samples, R, D, service, arrival, computation_period, signal_period, simulation_time};
 }
 
 vi generateC(int n, int k){
@@ -370,10 +372,10 @@ int main(int argc, char* argv[]){
 
     freopen("input.txt", "r", stdin);
 
-    auto [R, D, service, arrival, cp, sp, st] = Input();
+    auto [samples, R, D, service, arrival, cp, sp, st] = Input();
     Refresh(11);
     
-    const int samples = 3, width = 60;
+    const int width = 60;
     for(int i = 1; i <= samples; i++){
         for(int i = 0; i < width; i++) cout << "-";
         cout << "\nSample : " << i << endl;
