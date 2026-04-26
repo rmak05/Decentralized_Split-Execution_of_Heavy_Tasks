@@ -8,9 +8,7 @@ Consider a set of $N$ devices $D_1, D_2, \ldots, D_N$ forming a mesh network, ra
 
 A heavy computation task is divided into $K$ components $C_1, C_2, \ldots, C_K$. Each component is installed on exactly one device (the assignment is initially uniform, i.e., each component is assigned to exactly $N/K$ devices in a round-robin fashion, then the mapping is randomly shuffled). To complete execution, a task must be processed by all $K$ components *in sequence*:
 
-$
-C_1 \rightarrow C_2 \rightarrow \cdots \rightarrow C_K \rightarrow \text{return to origin}
-$
+$C_1 \rightarrow C_2 \rightarrow \cdots \rightarrow C_K \rightarrow \text{return to origin}$
 
 After being processed by component $C_i$, the task is forwarded through the mesh network (via flooding) to the device hosting component $C_{i+1}$.
 
@@ -29,9 +27,7 @@ Tasks are generated non-uniformly across the network area. Different cells of th
 - Some of the grid cells host *devices*. There are $M$ devices $D_1, D_2, \dots, D_M$.
 
 - Two devices $D_i$ and $D_j$ can communicate directly if:
-  $
-  |x_i - x_j| + |y_i - y_j| \leq R
-  $
+  $|x_i - x_j| + |y_i - y_j| \leq R$
   where $R$ is the communication radius.
 
 - Each arriving event generates a *task*.
@@ -51,9 +47,7 @@ Tasks are generated non-uniformly across the network area. Different cells of th
   - **Signal phase:** All communication and message forwarding occurs.
 
 - Once all components are processed:
-  $
-  C_1 \to C_2 \to \cdots \to C_K
-  $
+  $C_1 \to C_2 \to \cdots \to C_K$
   the task returns to its origin cell.
 
 ### Commands
